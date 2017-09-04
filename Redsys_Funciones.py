@@ -84,8 +84,134 @@ def createGroup(groupName, description,branch,host,user,passwd):
 	message = checkResponse(sendRequest('PUT','group',xml_request,host,user,passwd,1))
 	print "\t"+message[1]
 
+#No funciona
+def modGroupAddMembers (cn, uid, host, usr, passwd):
+        print "Adding members to group  "+cn+":"
+        group = Element('group')
+
+        branch_att = SubElement(group,'branch')
+        branch_att.text = 'ou=deshabilitados'
+
+        login_att = SubElement(group,'cn')
+        login_att.text = cn
+
+        lD_name  = SubElement(group,'members')
+        lD_name.text=uid
+
+        gid_ = SubElement(group,'gidNumber')
+        gid_.text = '20214'
+
+
+        xml_request = tostring(group,'utf-8')
+
+        print xml_request
+        message = checkResponse(sendRequest('POST', 'group/', xml_request,host, usr, passwd,1))
+        print message[1]
+
 	
+
+def ponerDeshabilitacionPorScriptATrue (uid, host, usr, passwd):
+        print "Modifying attributes for user "+uid+":"
+        user = Element('user')
+
+
+        atts = SubElement(user,'attributes')
+        dPS_ = SubElement(atts,'atribute')
+        lD_base64 = SubElement(dPS_,'base64')
+        lD_base64.text = 'false'
+        lD_name  = SubElement(dPS_,'name')
+        lD_name.text="deshabilitacionPorScript"
+
+        lD_name  = SubElement(dPS_,'values')
+        lD_name.text="TRUE"
+
+        login_att = SubElement(user,'login')
+        login_att.text = uid
+
+        uid_att = SubElement(user,'uid')
+        uid_att.text = uid
+
+        branch_att = SubElement(user,'branch')
+        branch_att.text = 'S8'
+
+        xml_request = tostring(user,'utf-8')
+
+        print xml_request
+        message = checkResponse(sendRequest('POST', 'user/', xml_request,host, usr, passwd,1))
+        print message[1]
+
 	
+def modUserAddMembership (uid, group, host, usr, passwd):
+		branch = []
+		if uid.startswith('s'):
+			branch = 'ou=S8'
+		elif uid.startswith('x'):
+			branch = 'ou=X8'
+		elif uid.startswith('E'):
+			branch = 'ou='+uid[0:5]
+		elif uid.startswith('C'):
+			branch = 'ou='+uid[0:5]
+			
+			
+		print "Modifying attributes for uid "+uid+":"
+		user = Element('user')
+
+
+
+		atts = SubElement(user,'attributes')
+		dPS_ = SubElement(atts,'atribute')
+		lD_base64 = SubElement(dPS_,'base64')
+		lD_base64.text = 'false'
+		lD_name  = SubElement(dPS_,'name')
+		lD_name.text="groupsToAdd"
+
+		lD_name  = SubElement(dPS_,'values')
+		lD_name.text=group
+
+		login_att = SubElement(user,'login')
+		login_att.text = uid
+
+		uid_att = SubElement(user,'uid')
+		uid_att.text = uid
+
+		branch_att = SubElement(user,'branch')
+		branch_att.text = branch
+
+		xml_request = tostring(user,'utf-8')
+
+		print xml_request
+		message = checkResponse(sendRequest('POST', 'user/', xml_request,host, usr, passwd,1))
+		print message[1]
+
+#OLD	
+def addUserToGroup (rama, dn, uid, nombre, roleToAddTo, host, user, passwd):
+	print "Añadiendo el usuario "+uid+" al rol "+roleToAddTo+".\n"
+	request = Element('request')
+	usr = SubElement(request,'user')
+	usr.set('branch',rama)
+	usr.set('dn',dn)
+	usr.set('uid',uid)
+	#user.text=' '
+	uid_ = SubElement(usr,'attribute')
+	uid_.set('name','uid')
+	uid_.text=uid
+
+	branch = SubElement(usr,'attribute')
+	branch.set('name','branch')
+	branch.text=rama
+
+	givenName = SubElement(usr,'attribute')
+	givenName.set('name','givenName')
+	givenName.text=nombre
+
+	roleToAddTo_att = SubElement(usr,'attribute')
+	roleToAddTo_att.set('name','groupsToAdd')
+	roleToAddTo_att.text=roleToAddTo
+
+	xml_request = tostring(request,'utf-8')
+	print xml_request
+	message = checkResponse(sendRequest('PUT', 'user/' + uid, xml_request, host, user, passwd))
+	print message[1]
 	
 	
 def notifyPasswordATrue (rama,dn,uid,nombre, host, usr, passwd):
@@ -117,7 +243,61 @@ def notifyPasswordATrue (rama,dn,uid,nombre, host, usr, passwd):
 	message = checkResponse(sendRequest('PUT', 'user/' + uid, xml_request, host, usr, passwd))
 	print message[1]
 
+def getMemberUsers(branch, host, user, passwd):
+	print "\nObteniendo miembros de grupos...\n"
+	data = sendRequest('GET', 'group/groups/' + branch, None,host, user, passwd, 1) #get user
+	response = ET.fromstring(data)
+	members = []
+	groups = {}
+	#for dp in response[0][1]:
+	#	print dp.get('name')
+	for child in response[0]: #child.tag is "user"
+		#print child[1].text
+		#print len(child)
+		for p in range (len(child)):
+			if child[p].tag == 'cn':
+				#print "Group: "+child[p].text
+				groupName = child[p].text
+			elif child[p].tag == 'members':
+				#print "Member: "+child[p].text
+				if groupName not in groups:
+					groups[groupName] = [child[p].text]
+				else:
+					groups[groupName].append (child[p].text)
+	return groups				
+			#print "Rama: "+str(child[p].get('cn'))
+		#print keys_
+		#uid = properties['uid']
+	
+	
+def getRepositories(host, user, passwd):
+	print "\nObteniendo repositorios...\n"
+	data = sendRequest('GET', 'repository', None,host, user, passwd, 1) #get user
+	response = ET.fromstring(data)
+	members = []
+	repositories = {}
+	#for dp in response[0][1]:
+	#	print dp.get('name')
+	for child in response[0]: #child.tag is "user"
+		#print child[1].text
+		#print len(child)
+		for p in range (len(child)):
+			if child[p].tag == 'cn':
+				#print "Repos: "+child[p].text
+				reposName = child[p].text
+			if child[p].tag == 'ldapFilter':
+				#print "Order: "+child[p].text
+				ldapFilter =child[p].text
+			if child[p].tag == 'order':
+				#print "Order: "+child[p].text
+				order =child[p].text
+				repositories[reposName] = [order,ldapFilter]
+	return repositories
 
+			#print "Rama: "+str(child[p].get('cn'))
+		#print keys_
+		#uid = properties['uid']
+	
 	
 def getOneUserApplNuevasStatus(uid, listaAppsStatus, host, user, passwd):
 	properties={}
@@ -991,7 +1171,7 @@ def getRepository(reposName, host,user,passwd):
 	
 def modifyRepository(reposName, orderNr, userFilter, host,user,passwd):
 
-	print "Creating "+'cn='+reposName+',ou=repositories,ou=configuration,dc=gid,dc=redsys,dc=es'
+	print "Modifying "+'cn='+reposName+',ou=repositories,ou=configuration,dc=gid,dc=redsys,dc=es'
 	##print "Creating "+'cn='+reposName+',ou=repositories,ou=configuration,dc=gid-d,dc=redsys,dc=es'
 	
 	repos = Element('repository')
@@ -1291,11 +1471,11 @@ def modifyRepository(reposName, orderNr, userFilter, host,user,passwd):
 	print xml_request
 	
 
-	message = checkResponse(sendRequest('POST','repository',xml_request,host,user,passwd,1))
+	sendRequest('POST','repository',xml_request,host,user,passwd,1)
 	#message = checkResponse(sendRequest('POST','repository',xml_request,host,user,passwd,1))
 
-	print "\t"+message[1]
-	print "\t"+str(message) 
+	#print "\t"+message[1]
+	#print "\t"+str(message) 
 
 	
 def createListener (reposName, branchName, host,user,passwd):
