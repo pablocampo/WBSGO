@@ -299,6 +299,33 @@ def getRepositories(host, user, passwd):
 		#uid = properties['uid']
 	
 	
+	
+def getListeners(host, user, passwd):
+	print "\nObteniendo listeners...\n"
+	data = sendRequest('GET', 'listener', None,host, user, passwd, 1) #get user
+	response = ET.fromstring(data)
+	members = []
+	listeners = {}
+	#for dp in response[0][1]:
+	#	print dp.get('name')
+	for child in response[0]: #child.tag is "user"
+		#print child[1].text
+		#print len(child)
+		for p in range (len(child)):
+			if child[p].tag == 'cn':
+				#print "Listener: "+child[p].text
+				listenerName = child[p].text
+			if child[p].tag == 'branch':
+				#print "Branch: "+child[p].text
+				branch =child[p].text
+				listeners[listenerName] = branch
+	return listeners
+
+			#print "Rama: "+str(child[p].get('cn'))
+		#print keys_
+		#uid = properties['uid']
+	
+	
 def getOneUserApplNuevasStatus(uid, listaAppsStatus, host, user, passwd):
 	properties={}
 	groups =[]
