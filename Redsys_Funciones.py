@@ -110,6 +110,47 @@ def modGroupAddMembers (cn, uid, host, usr, passwd):
 
 	
 
+def ponerReactivarATrue (uid, host, usr, passwd):
+        branch = ""
+        if uid.startswith('s'):
+            branch = 'S8'
+        elif uid.startswith('x'):
+            branch = 'X8'
+        elif uid.startswith('E') or uid.startswith('e'):
+            branch = uid[0:5]
+        elif uid.startswith('C'):
+            branch = uid[0:5]
+			
+        print "Reactivating user "+uid+":"
+        user = Element('user')
+
+
+        atts = SubElement(user,'attributes')
+        dPS_ = SubElement(atts,'atribute')
+        lD_base64 = SubElement(dPS_,'base64')
+        lD_base64.text = 'false'
+        lD_name  = SubElement(dPS_,'name')
+        lD_name.text="reactivar"
+
+        lD_name  = SubElement(dPS_,'values')
+        lD_name.text="TRUE"
+
+        login_att = SubElement(user,'login')
+        login_att.text = uid
+
+        uid_att = SubElement(user,'uid')
+        uid_att.text = uid
+
+        branch_att = SubElement(user,'branch')
+        branch_att.text = branch
+
+        xml_request = tostring(user,'utf-8')
+
+        print xml_request
+        message = checkResponse(sendRequest('POST', 'user/', xml_request,host, usr, passwd,1))
+        print message[1]
+
+	
 def ponerDeshabilitacionPorScriptATrue (uid, host, usr, passwd):
         print "Modifying attributes for user "+uid+":"
         user = Element('user')
@@ -142,18 +183,18 @@ def ponerDeshabilitacionPorScriptATrue (uid, host, usr, passwd):
 
 	
 def modUserAddMembership (uid, group, host, usr, passwd):
-		branch = []
+		branch = ""
 		if uid.startswith('s'):
-			branch = 'ou=S8'
+			branch = 'S8'
 		elif uid.startswith('x'):
-			branch = 'ou=X8'
+			branch = 'X8'
 		elif uid.startswith('E'):
-			branch = 'ou='+uid[0:5]
+			branch = uid[0:5]
 		elif uid.startswith('C'):
-			branch = 'ou='+uid[0:5]
+			branch = uid[0:5]
 			
+		print "Modifying attributes for uid "+uid+" in branch "+branch
 			
-		print "Modifying attributes for uid "+uid+":"
 		user = Element('user')
 
 
@@ -163,7 +204,7 @@ def modUserAddMembership (uid, group, host, usr, passwd):
 		lD_base64 = SubElement(dPS_,'base64')
 		lD_base64.text = 'false'
 		lD_name  = SubElement(dPS_,'name')
-		lD_name.text="groupsToAdd"
+		lD_name.text="roles2Add"
 
 		lD_name  = SubElement(dPS_,'values')
 		lD_name.text=group
