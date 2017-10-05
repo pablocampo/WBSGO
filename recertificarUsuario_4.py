@@ -90,11 +90,18 @@ def getuserroles(userid, cache):
     #print roles
     return roles
 
-
+def checkRoleProvisionados ():
+    uids = []
+    cache = load_obj("roles")
+    for uid in uids:
+        print "\nObtaining roles for user: "+uid
+        roles = getuserroles(uid, cache)
+        for role, info in roles.items():
+           print role
 
 
 def rellenarUserForXLS(userid):
-    print "\n\t\tGetting info forrr "+userid
+    #print "\n\t\tGetting info forrr "+userid
     ''' Rellena los attributos rolesDefinicionPuesto, rolesDeMas y rolesDeMenos de un usuario'''
     try:
         # Cargar caches
@@ -188,7 +195,7 @@ def makeXLS(uid, puesto, roles):
 def makeXLSMultiple(uids):	
 	
     print "making xls"
-    workbook = xlsxwriter.Workbook('Informe.xlsx')
+    workbook = xlsxwriter.Workbook('Informe_TFSE.xlsx')
     worksheet = workbook.add_worksheet()
 
     format1 = workbook.add_format({#'align': 'center',
@@ -199,44 +206,64 @@ def makeXLSMultiple(uids):
     format.set_pattern(1)
     format.set_bg_color('blue')
     format.set_font_color('white')
-
+    #worksheet.insert_image('A1', 'Toyota.png',{'x_scale': 0.25, 'y_scale': 0.14, 'positioning': 2})
     worksheet.write(1, 2,     "Identificador", format)
     worksheet.write(1, 3,     "Puesto", format)
     worksheet.write(1, 4,     "Aplicativo", format)
     worksheet.write(1, 5,     "Roles", format)
 
-    worksheet.set_column(2, 2,     30)
-    worksheet.set_column(3, 3,     30)
-    worksheet.set_column(4, 4,     30)
-    worksheet.set_column(5, 5,     30)
+    worksheet.set_column(2, 2,     18)
+    worksheet.set_column(3, 3,     40)
+    worksheet.set_column(4, 4,     20)
+    worksheet.set_column(5, 5,     35)
     x = 2
     h = x
     u = 2
     for uid in uids:
-       print "USER "+uid
+       print "\n\nUSER "+uid
        puesto, roles = rellenarUserForXLS(uid)
        #print "puesto "+puestoTrabajo
 	
-	
-       for father, vals in roles.items():
-          j = len(roles[father])
-          print father
-          for role in roles[father]:
-             print "\t"+role
-             worksheet.write(x, 5,     role, format2)
-           
-             x = x+1
-          if j ==1:
-             worksheet.write(x-1, 4,     father, format1)
-          else:
-             worksheet.merge_range(h,4,h+j-1,4, father, format1)
-          h = x
+       k= len(roles)
+       print "K is "+str(k)
+       if k == 0:
+          worksheet.write(u, 2,     uid, format1)
+          worksheet.write(u, 3,     puesto, format1)
+          worksheet.write(u, 4,     "--", format2)
+          worksheet.write(u, 5,     "--", format2)
+          u = u+2
+          x = x +2
+          h = h+2
 
-       worksheet.merge_range(u,2,x-1,2, uid, format1)
-       worksheet.merge_range(u,3,x-1,3, puesto, format1)
-       h = h+1
-       x = x+1
-       u = x
+       else:
+		
+          for father, vals in roles.items():
+             j = len(roles[father])
+             print father
+             for role in roles[father]:
+                print "\t"+role
+                worksheet.write(x, 5,     role, format2)
+           
+                x = x+1
+             if k ==0:
+                worksheet.write(x-1, 4,     " ", format1)
+             if k ==0:
+                worksheet.write(x-1, 5,     " ", format2)
+             if j ==1:
+                worksheet.write(x-1, 4,     father, format1)
+             else:
+                worksheet.merge_range(h,4,h+j-1,4, father, format1)
+             h = x
+
+          if u == x-1:
+             worksheet.write(u, 2,     uid, format1)
+             worksheet.write(u, 3,     puesto, format1)
+          else:
+             worksheet.merge_range(u,2,x-1,2, uid, format1)
+             worksheet.merge_range(u,3,x-1,3, puesto, format1)
+          h = h+1
+          x = x+1
+          u = x
     workbook.close()	
 	
 def writer (uid):
@@ -254,16 +281,20 @@ def writer (uid):
 
 	
 	
-def getAllUserForXLS():
-    uids= ['raul.lopez', 'joseluis.gonzalez', 'abdel.lamouri',  'alba.pickhardt', 'alberto.ortego',\
-		  'hugo.ortega', 'gestor.valida', 'gestor.recobro']
-    uid1= ['raul.lopez', 'joseluis.gonzalez']
+def getAllUserForXLS2():
+    uids= ['raul.lopez', 'vodafone', 'joseluis.gonzalez', 'abdel.lamouri', 'abid.shehzad', 'alba.pickhardt', 'alberto.ortego',\
+		  'hugo.ortega', 'gestor.valida', 'gestor.recobro', 'bilel.jemaa', 'Raul.Zamora', 'olivier.demah', \
+		  'gema.villaverde', 'Ignacio.Garrido', 'Javier.Delgado', 'juan.kremers', 'silvia.arroyo', 'victor.ayuso', \
+		  'adminre', 'admincv', 'adminad']
+    uid1= ['raul.lopez', 'joseluis.gonzalez' ]
     return uids 
 		
 	
 	
-def getAllUserForXLS2():
+def getAllUserForXLS():
     uids= []
+    listExcluded = ['becario.operaciones', 'Becario.Riesgos', 'Daniel.test', 'Gestor.ATC', \
+					'Guest', 'invitado', 'test.test', 'testesuser', 'Usuario.Pruebas', 'Dario.Campo', 'Dario.Carrera']
     print "Actualizando todos los usuarios"
     try:
         data = DAO.sendrequest('GET', 'user', None, 0, 'branch=usuariosTFSE')
@@ -272,7 +303,8 @@ def getAllUserForXLS2():
             response = ElementTree.fromstring(data)
             for child in response[0]:
                 uid = child.get('uid')
-                uids.append(uid)
+                if uid not in listExcluded:
+                   uids.append(uid)
         else:
             print message[1]
     except:
@@ -291,6 +323,7 @@ def printmenu():
     print "\t2.- Recertificar un usuario"
     print "\t3.- Rellenar atributos de permisos de un usuario"
     print "\t4.- Rellenar atributos de permisos de TODOS"
+    print "\t5.- Comprobar roles"
     print ""
     print "\t0.- Salir"
 
@@ -315,6 +348,10 @@ def printmenu():
         elif op == 4:
             #rellenarall()
             makeXLSAll()
+            printmenu()
+        elif op == 5:
+            #rellenarall()
+            checkRoleProvisionados ()
             printmenu()
     except Exception, e:
         op = 9999
